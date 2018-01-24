@@ -199,7 +199,28 @@ server <- function(input, output) {
   output$transPlot <- renderPlot({
    long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
    wide_data<-filter(wide,HOUSE_ID==input$select,pair==input$pairs)
-  ggplot()+geom_point(data=long_data,aes(x=day,y=freq,color=sample_class)) + # points (when were the mutations found)
+    Donor_SPECID<-HIVEr::get_close(meta,date = unique(wide_data$transmission),
+                                    enrollid = unique(wide_data$Donor_ENROLLID),
+                                    case="donor")
+    Recipient_SPECID<-HIVEr::get_close(meta,date = unique(wide_data$transmission),
+                                 enrollid = unique(wide_data$Recipient_ENROLLID),
+                                 case="recipient")
+   if(!(is.na(unique(wide_data$Donor_clinic))) & unique(wide_data$Donor_clinic)==Donor_SPECID){
+     Donor_column = "Donor_clinic_freq"
+     Donor_time = "Donor_clinic_collect"
+   }else if(!(is.na(unique(wide_data$Donor_home))) & unique(wide_data$Donor_home)==Donor_SPECID){
+     Donor_column = "Donor_home_freq"
+     Donor_time = "Donor_home_collect"
+   }
+    if(!(is.na(unique(wide_data$Recipient_clinic))) & unique(wide_data$Recipient_clinic)==Recipient_SPECID){
+      Recipient_column = "Recipient_clinic_freq"
+      Recipient_time = "Recipient_clinic_collect"
+    }else if(!(is.na(unique(wide_data$Recipient_home))) & unique(wide_data$Recipient_home)==Recipient_SPECID){
+      Recipient_column = "Recipient_home_freq"
+      Recipient_time = "Recipient_home_collect"
+    }
+  ggplot()+geom_point(data=long_data,aes(x=day,y=freq,color=as.factor(sample_class))) + 
+    scale_color_manual(values = cbPalette[c(5,2)],labels = c("Donor","Recipient"),name="")+ # points (when were the mutations found)
      geom_vline(xintercept =
                   unique(long_data$transmission-long_data$Donor_onset),linetype=2) + # Estimated transmission
      geom_segment(data=wide_data,aes(x=Donor_home_collect-Donor_onset, # lines for donor
@@ -210,6 +231,11 @@ server <- function(input, output) {
                                      xend=Recipient_clinic_collect-Donor_onset,
                                      y=Recipient_home_freq,yend=Recipient_clinic_freq),
                   color=cbPalette[2])+
+      geom_segment(data=wide_data,aes(x=get(Donor_time)-Donor_onset,
+                                   xend=get(Recipient_time)-Donor_onset,
+                                    y=get(Donor_column),
+                                    yend=get(Recipient_column)),
+                 color=cbPalette[3],linetype=2,alpha=0.5)+
      scale_x_continuous(limits = c(-0.05,max(long_data$day)+0.1))+
      scale_y_continuous(limits = c(min(long_data$freq)-0.02,max(long_data$freq)+0.05))+
      xlab("Days post Donor symptom onset")+ylab("Frequency")+
