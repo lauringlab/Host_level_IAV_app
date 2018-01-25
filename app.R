@@ -197,6 +197,8 @@ server <- function(input, output) {
     radioButtons("pairs", "Choose Pair", options$opts)
   })
   
+
+  
   output$transPlot <- renderPlot({
    long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
    wide_data<-filter(wide,HOUSE_ID==input$select,pair==input$pairs)
@@ -249,7 +251,7 @@ server <- function(input, output) {
      scale_x_continuous(limits = c(-0.05,max(long_data$day)+0.5))+
      scale_y_continuous(limits = c(min(long_data$freq)-0.02,max(long_data$freq)+0.05))+
      xlab("Days post Donor symptom onset")+ylab("Frequency")+
-    scale_alpha_continuous(guide=F)+
+    scale_alpha_discrete(guide=FALSE)
       coord_cartesian(xlim = ranges_trans$x, ylim = ranges_trans$y, expand = FALSE)
   })
   # When a double-click happens, check if there's a brush on the plot.
