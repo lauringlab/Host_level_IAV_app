@@ -113,6 +113,7 @@ ui <- navbarPage("My Application",
                                        hover = hoverOpts("transPlot_hover", delay = 100,
                                                          delayType = "debounce"), 
                                        dblclick = "trans_dblclick", 
+                                       click = "transPlot_click",
                                        brush = brushOpts( 
                                          id = "transPlot_brush", 
                                          resetOnNew = TRUE)), 
@@ -196,6 +197,8 @@ server <- function(input, output) {
     radioButtons("pairs", "Choose Pair", options$opts)
   })
   
+
+  
   output$transPlot <- renderPlot({
    long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
    wide_data<-filter(wide,HOUSE_ID==input$select,pair==input$pairs)
@@ -205,6 +208,15 @@ server <- function(input, output) {
     Recipient_SPECID<-HIVEr::get_close(meta,date = unique(wide_data$transmission),
                                  enrollid = unique(wide_data$Recipient_ENROLLID),
                                  case="recipient")
+    select_points<- nearPoints(long_data, input$transPlot_click, allRows = TRUE) # selecting points
+    print(select_points$selected_)
+    if(any(select_points$selected_)){ # if any are selected dim the others
+      selected<-filter(select_points,selected_==T)
+      long_data$alpha=0.2
+      long_data$alpha[which(long_data$mutation %in% selected$mutation)]<-1
+    } else{
+      long_data$alpha=1
+    }
    if(!(is.na(unique(wide_data$Donor_clinic))) & unique(wide_data$Donor_clinic)==Donor_SPECID){
      Donor_column = "Donor_clinic_freq"
      Donor_time = "Donor_clinic_collect"
@@ -219,7 +231,7 @@ server <- function(input, output) {
       Recipient_column = "Recipient_home_freq"
       Recipient_time = "Recipient_home_collect"
     }
-  ggplot()+geom_point(data=long_data,aes(x=day,y=freq,color=as.factor(sample_class))) + 
+  ggplot()+geom_point(data=long_data,aes(x=day,y=freq,color=as.factor(sample_class),alpha=alpha)) + 
     scale_color_manual(values = cbPalette[c(5,2)],labels = c("Donor","Recipient"),name="")+ # points (when were the mutations found)
      geom_vline(xintercept =
                   unique(long_data$transmission-long_data$Donor_onset),linetype=2) + # Estimated transmission
@@ -239,6 +251,7 @@ server <- function(input, output) {
      scale_x_continuous(limits = c(-0.05,max(long_data$day)+0.5))+
      scale_y_continuous(limits = c(min(long_data$freq)-0.02,max(long_data$freq)+0.05))+
      xlab("Days post Donor symptom onset")+ylab("Frequency")+
+    scale_alpha_discrete(guide=FALSE)
       coord_cartesian(xlim = ranges_trans$x, ylim = ranges_trans$y, expand = FALSE)
   })
   # When a double-click happens, check if there's a brush on the plot.
