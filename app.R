@@ -257,8 +257,9 @@ server <- function(input, output) {
   
   
   output$transPlot_hover_info <- renderUI({
+    long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
     hover <- input$transPlot_hover
-    point <- nearPoints(long, hover, threshold = 5, maxpoints = 1, addDist = TRUE)
+    point <- nearPoints(long_data, hover, threshold = 5, maxpoints = 1, addDist = TRUE)
     if (nrow(point) == 0) return(NULL)
     
     # calculate point position INSIDE the image as percent of total dimensions
