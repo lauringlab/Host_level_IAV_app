@@ -201,6 +201,7 @@ server <- function(input, output) {
   
   output$transPlot <- renderPlot({
    long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
+   vals$keeprows = rep(TRUE, nrow(long_data)) # updates keep rows
    wide_data<-filter(wide,HOUSE_ID==input$select,pair==input$pairs)
     Donor_SPECID<-HIVEr::get_close(meta,date = unique(wide_data$transmission),
                                     enrollid = unique(wide_data$Donor_ENROLLID),
@@ -298,8 +299,6 @@ server <- function(input, output) {
                     "<b> Sample: </b>", gsub(pattern = "_",x = point$sample,replacement = ":"), "<br/>"))
     ))
   })
-  
-  
   
 }
 
