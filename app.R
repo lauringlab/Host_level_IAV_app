@@ -236,7 +236,7 @@ server <- function(input, output) {
                                     y=get(Donor_column),
                                     yend=get(Recipient_column)),
                  color=cbPalette[3],linetype=2,alpha=0.5)+
-     scale_x_continuous(limits = c(-0.05,max(long_data$day)+0.1))+
+     scale_x_continuous(limits = c(-0.05,max(long_data$day)+0.5))+
      scale_y_continuous(limits = c(min(long_data$freq)-0.02,max(long_data$freq)+0.05))+
      xlab("Days post Donor symptom onset")+ylab("Frequency")+
       coord_cartesian(xlim = ranges_trans$x, ylim = ranges_trans$y, expand = FALSE)
