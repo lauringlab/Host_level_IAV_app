@@ -41,12 +41,14 @@ theme_set(new = theme_classic()+ theme(
 
 figure1<-read.csv("../Host_level_IAV_evolution/results/Figures/data/Figure1C_D.csv",
                   stringsAsFactors = F)
+
 # Set the segments as factors with PB2 on top
 figure1$chr<-factor(figure1$chr,
                     levels = rev(c("PB2","PB1","PA","HA","NP","NR","M","NS"))) 
 
 chrs<-read.csv("../Host_level_IAV_evolution/data/reference/segs.csv",stringsAsFactors = T) 
 chrs$chr<-factor(chrs$chr,levels=levels(figure1$chr)) # set factors on the is meta data
+
 
 ##### Transmission
 require(readr)
@@ -59,6 +61,8 @@ wide<-wide %>% rowwise() %>% mutate(pair = paste0(Donor_ENROLLID,"-",Recipient_E
 Houses = setNames(unique(wide$HOUSE_ID),unique(wide$HOUSE_ID))
 
 meta<-read_csv("../Host_level_IAV_evolution/data/processed/secondary/meta_snv_qual.csv")
+bottlenecks<-read_csv("../Host_level_IAV_evolution/data/processed/secondary/beta_bottlenecks_by_pair.csv")
+bottlenecks<-bottlenecks %>% rowwise() %>% mutate(pair = paste0(ENROLLID1,"-",ENROLLID2)) 
 
 ###################################################################################
 # UI
@@ -99,7 +103,9 @@ ui <- navbarPage("My Application",
                                         choices = Houses, 
                                         selected = Houses[1]),
 
-                            uiOutput("Pairings")
+                            uiOutput("Pairings"),
+                            htmlOutput("bottleneck")
+                            
                             ), 
 
                         mainPanel( 
@@ -198,26 +204,24 @@ server <- function(input, output) {
   })
   
 
+  mut_select<-reactiveValues(
+    mut = character(0)
+  )
   
   output$transPlot <- renderPlot({
    long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
-   vals$keeprows = rep(TRUE, nrow(long_data)) # updates keep rows
    wide_data<-filter(wide,HOUSE_ID==input$select,pair==input$pairs)
+   if(length(mut_select$mut)==1){
+     long_data <-filter(long_data,mutation==mut_select$mut)
+     wide_data <-filter(wide_data,mutation==mut_select$mut)
+     
+   }
     Donor_SPECID<-HIVEr::get_close(meta,date = unique(wide_data$transmission),
                                     enrollid = unique(wide_data$Donor_ENROLLID),
                                     case="donor")
     Recipient_SPECID<-HIVEr::get_close(meta,date = unique(wide_data$transmission),
                                  enrollid = unique(wide_data$Recipient_ENROLLID),
                                  case="recipient")
-    select_points<- nearPoints(long_data, input$transPlot_click, allRows = TRUE) # selecting points
-    print(select_points$selected_)
-    if(any(select_points$selected_)){ # if any are selected dim the others
-      selected<-filter(select_points,selected_==T)
-      long_data$alpha=0.2
-      long_data$alpha[which(long_data$mutation %in% selected$mutation)]<-1
-    } else{
-      long_data$alpha=1
-    }
    if(!(is.na(unique(wide_data$Donor_clinic))) & unique(wide_data$Donor_clinic)==Donor_SPECID){
      Donor_column = "Donor_clinic_freq"
      Donor_time = "Donor_clinic_collect"
@@ -232,7 +236,11 @@ server <- function(input, output) {
       Recipient_column = "Recipient_home_freq"
       Recipient_time = "Recipient_home_collect"
     }
-  ggplot()+geom_point(data=long_data,aes(x=day,y=freq,color=as.factor(sample_class),alpha=alpha)) + 
+    print(Donor_time)
+    print(Donor_column)
+    print(Recipient_time)
+    print(Recipient_column)
+  ggplot()+geom_point(data=long_data,aes(x=day,y=freq,color=as.factor(sample_class))) + 
     scale_color_manual(values = cbPalette[c(5,2)],labels = c("Donor","Recipient"),name="")+ # points (when were the mutations found)
      geom_vline(xintercept =
                   unique(long_data$transmission-long_data$Donor_onset),linetype=2) + # Estimated transmission
@@ -248,12 +256,11 @@ server <- function(input, output) {
                                    xend=get(Recipient_time)-Donor_onset,
                                     y=get(Donor_column),
                                     yend=get(Recipient_column)),
-                 color=cbPalette[3],linetype=2,alpha=0.5)+
-     scale_x_continuous(limits = c(-0.05,max(long_data$day)+0.5))+
+                 color=cbPalette[3],linetype=2)+
+     scale_x_continuous(limits = c(-1.05,max(long_data$day)+0.5))+
      scale_y_continuous(limits = c(min(long_data$freq)-0.02,max(long_data$freq)+0.05))+
      xlab("Days post Donor symptom onset")+ylab("Frequency")+
-    scale_alpha_discrete(guide=FALSE)
-      coord_cartesian(xlim = ranges_trans$x, ylim = ranges_trans$y, expand = FALSE)
+    coord_cartesian(xlim = ranges_trans$x, ylim = ranges_trans$y, expand = FALSE)
   })
   # When a double-click happens, check if there's a brush on the plot.
   # If so, zoom to the brush bounds; if not, reset the zoom.
@@ -272,6 +279,9 @@ server <- function(input, output) {
   
   output$transPlot_hover_info <- renderUI({
     long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
+    if(length(mut_select$mut)==1){
+      long_data <-filter(long_data,mutation==mut_select$mut)
+    }
     hover <- input$transPlot_hover
     point <- nearPoints(long_data, hover, threshold = 5, maxpoints = 1, addDist = TRUE)
     if (nrow(point) == 0) return(NULL)
@@ -294,10 +304,25 @@ server <- function(input, output) {
     # actual tooltip created as wellPanel
     wellPanel(
       style = style,
-      p(HTML(paste0("<b> Mutation: </b>", point$mutation, "<br/>",
+      p(HTML(paste0("<b> Allele: </b>", paste0(point$chr," ",point$pos,point$var), "<br/>",
                     "<b> Frequency: </b>", round(point$freq,2), "<br/>",
-                    "<b> Sample: </b>", gsub(pattern = "_",x = point$sample,replacement = ":"), "<br/>"))
+                    "<b> Sample: </b>", gsub(pattern = "_",x = point$sample,replacement = " : "), "<br/>"))
     ))
+  })
+  
+  observeEvent(input$transPlot_click, {
+    long_data<-filter(long,HOUSE_ID==input$select,pair==input$pairs)
+    res <- nearPoints(long_data, input$transPlot_click, threshold = 5, maxpoints = 1,allRows = TRUE)
+    mut_select$mut <- res$mutation[res$selected_==T]
+  })
+  
+  output$bottleneck <- renderUI({
+    if(input$pairs %in% bottlenecks$pair){
+      Nb<-bottlenecks$Nb[bottlenecks$pair==input$pairs]
+    }else{
+      Nb<-"No estimate available"
+    }
+    HTML(paste0("Estimated bottleneck: ",Nb))
   })
   
 }
