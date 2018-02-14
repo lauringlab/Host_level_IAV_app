@@ -39,29 +39,29 @@ theme_set(new = theme_classic()+ theme(
   text=element_text(family="Arial",size = 18))) # to make nice plots
 # get the start and stop of each OR for each segment (2014-2015 used as reference)
 
-figure1<-read.csv("../Host_level_IAV_evolution/results/Figures/data/Figure1C_D.csv",
+figure1<-read.csv("./data/Figure1D.csv",
                   stringsAsFactors = F)
 
 # Set the segments as factors with PB2 on top
 figure1$chr<-factor(figure1$chr,
                     levels = rev(c("PB2","PB1","PA","HA","NP","NR","M","NS"))) 
 
-chrs<-read.csv("../Host_level_IAV_evolution/data/reference/segs.csv",stringsAsFactors = T) 
+chrs<-read.csv("./data/segs.csv",stringsAsFactors = T) 
 chrs$chr<-factor(chrs$chr,levels=levels(figure1$chr)) # set factors on the is meta data
 
 
 ##### Transmission
 require(readr)
-long<-read_csv("./freq.long.csv")
+long<-read_csv("./data/freq.long.csv")
 long<- long %>%  mutate(day = collection-Donor_onset,
                         sample_class=gsub(pattern = "(.*)_.*",x=sample,replacement = "\\1",perl = T),
                         pair = paste0(Donor_ENROLLID,"-",Recipient_ENROLLID)) 
-wide<-read_csv("./freq.wide.csv")
+wide<-read_csv("./data/freq.wide.csv")
 wide<-wide %>% rowwise() %>% mutate(pair = paste0(Donor_ENROLLID,"-",Recipient_ENROLLID)) 
 Houses = setNames(unique(wide$HOUSE_ID),unique(wide$HOUSE_ID))
 
-meta<-read_csv("../Host_level_IAV_evolution/data/processed/secondary/meta_snv_qual.csv")
-bottlenecks<-read_csv("../Host_level_IAV_evolution/data/processed/secondary/beta_bottlenecks_by_pair.csv")
+meta<-read_csv("./data/meta_snv_qual.csv")
+bottlenecks<-read_csv("./data//beta_bottlenecks_by_pair.csv")
 bottlenecks<-bottlenecks %>% rowwise() %>% mutate(pair = paste0(ENROLLID1,"-",ENROLLID2)) 
 
 ###################################################################################
@@ -137,7 +137,7 @@ server <- function(input, output) {
   ranges_trans <- reactiveValues(x = NULL, y = NULL)
   output$genomePlot <- renderPlot({
     ggplot(figure1,aes(x=pos,y=chr))+
-      geom_point(aes(color=class_factor),shape=108,size=10)+
+      geom_point(aes(color=class),shape=108,size=10)+
       geom_segment(data=chrs,aes(x = start, y = chr, xend = stop, yend = chr))+
       ylab("")+
       xlab("")+
@@ -236,10 +236,7 @@ server <- function(input, output) {
       Recipient_column = "Recipient_home_freq"
       Recipient_time = "Recipient_home_collect"
     }
-    print(Donor_time)
-    print(Donor_column)
-    print(Recipient_time)
-    print(Recipient_column)
+
   ggplot()+geom_point(data=long_data,aes(x=day,y=freq,color=as.factor(sample_class))) + 
     scale_color_manual(values = cbPalette[c(5,2)],labels = c("Donor","Recipient"),name="")+ # points (when were the mutations found)
      geom_vline(xintercept =
