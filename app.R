@@ -32,6 +32,7 @@ library("ggplot2")
 require("magrittr")
 require(dplyr)
 require(wesanderson)
+require(readr)
 cbPalette<-wes_palette("Zissou")
 theme_set(new = theme_classic()+ theme(
   axis.line.x = element_line(colour = 'black', size=0.5, linetype='solid'),
@@ -51,7 +52,7 @@ chrs$chr<-factor(chrs$chr,levels=levels(figure1$chr)) # set factors on the is me
 
 
 ##### Transmission
-require(readr)
+
 long<-read_csv("./data/freq.long.csv")
 long<- long %>%  mutate(day = collection-Donor_onset,
                         sample_class=gsub(pattern = "(.*)_.*",x=sample,replacement = "\\1",perl = T),
