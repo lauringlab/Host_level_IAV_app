@@ -73,7 +73,9 @@ ui <- navbarPage("My Application",
                         headerPanel("Diversity in Samples"), 
                         
                         sidebarPanel( 
-                          HTML("Add explanation of data here"), 
+                          HTML("Here is an overview of the iSNV found in the data set. 
+                               Hover over an iSNV to reveal it's identity and sample meta data.
+                               highlight and double click to zoom in on a regions."), 
                           width = 3 
                         ), 
                         
