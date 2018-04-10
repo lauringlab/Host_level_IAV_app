@@ -13,6 +13,14 @@ app.R - The script that controls the app
 ### Instructions
 To run simply download the reposity, open app.R in Rstudio and click "run App".
 
+You may need to install the dependencies list below. All except HIVEr are avaiable through CRAN.
+
+HIVEr contains a few functions used in our analysis and can be installed from github using
+
+```
+devtools::install_github("jtmccr1/HIVEr")
+```
+
 The app contains two tabs. In the first it is possible to explore the frequency and 
 identity of mutations relatvie to there position in the genome. Hovering over a mutaiton will display 
 meta data regarding that mutations. It is possible to zoom in on a region by highlighting the desired
@@ -34,4 +42,5 @@ magrittr
 dplyr
 wesanderson
 readr
+HIVEr
 ```
