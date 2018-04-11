@@ -11,9 +11,9 @@ app.R - The script that controls the app
 
 
 ### Instructions
-To run simply download the reposity, open app.R in Rstudio and click "run App".
+To run simply download the repository, open app.R in Rstudio and click "run App".
 
-You may need to install the dependencies list below. All except HIVEr are avaiable through CRAN.
+You may need to install the dependencies listed below. All except HIVEr are available through CRAN.
 
 HIVEr contains a few functions used in our analysis and can be installed from github using
 
